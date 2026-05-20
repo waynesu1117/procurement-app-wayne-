@@ -916,8 +916,8 @@ function exportCSV(){
 function closeModal(id){document.getElementById(id).style.display='none';}
 function handleOverlayClick(e,id){if(e.target===e.currentTarget)closeModal(id);}
 
-loadConfig();applyLabelsToDOM();
-if(cfg.scriptUrl){syncSheets();}else{renderInventory();}
+loadConfig();applyLabelsToDOM();renderInventory();
+if(cfg.scriptUrl){setTimeout(()=>syncSheets(),100);}
 </script>
 </body>
 </html>
