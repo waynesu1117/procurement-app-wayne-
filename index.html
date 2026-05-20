@@ -866,15 +866,16 @@ function testConn(){const id=document.getElementById('cfg-sheetId').value.trim()
 
 async function syncSheets(silent){
   if(!cfg.scriptUrl){renderInventory();return;}
-  if(!silent){
-    const ind=document.getElementById('sync-indicator');
-    if(ind){ind.style.display='flex';}
-  }
+  const ind=document.getElementById('sync-indicator');
+  if(ind)ind.style.display='flex';
   try {
     const url=cfg.scriptUrl+'?action=read&sheet='+(cfg.sheetProducts||'Products');
-    const res=await fetch(url);
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),8000);
+    const res=await fetch(url,{signal:controller.signal});
+    clearTimeout(timeout);
     const json=await res.json();
-    if(json.error){if(!silent)alert('讀取失敗：'+json.error);renderInventory();return;}
+    if(json.error){renderInventory();return;}
     const rows=json.data;
     if(!rows||rows.length<2){renderInventory();return;}
     const parsed=rows.slice(1).filter(r=>r[0]).map(r=>({
@@ -891,8 +892,7 @@ async function syncSheets(silent){
   } catch(e){
     renderInventory();
   } finally {
-    const ind=document.getElementById('sync-indicator');
-    if(ind){ind.style.display='none';}
+    if(ind)ind.style.display='none';
   }
 }
 
