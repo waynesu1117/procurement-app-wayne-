@@ -566,6 +566,8 @@ function getUsage(p, w){
     return p.wusage||0;
   }
 }
+
+function setView(v){
   currentView=v;
   document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('view-btn-'+v).classList.add('active');
