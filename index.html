@@ -186,6 +186,7 @@
     .view-btn.active[onclick="setView('east')"]{color:var(--east-text)}
     .view-btn.active[onclick="setView('west')"]{color:var(--west-text)}
     .divider{height:1px;background:var(--border);margin:4px 0}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -211,7 +212,15 @@
 
   <!-- 庫存頁 -->
   <div class="page active" id="page-inventory">
-    <div class="page-header"><div class="page-header-left"><h1>庫存總覽</h1><p>東岸 / 西岸倉庫各自計算補貨點、Lead Time 與耗盡日</p></div></div>
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>庫存總覽</h1>
+        <p>東岸 / 西岸倉庫各自計算補貨點、Lead Time 與耗盡日</p>
+      </div>
+      <div id="sync-indicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--text3);background:var(--surface2);padding:6px 12px;border-radius:99px;border:1px solid var(--border)">
+        <i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> 從 Sheets 載入中...
+      </div>
+    </div>
     <div class="stats-grid" id="stats-grid"></div>
     <div class="card">
       <div class="card-pad" style="padding-bottom:0">
@@ -225,7 +234,6 @@
             </div>
           </div>
           <div class="btn-group">
-            <button class="btn btn-sm" onclick="syncSheets()"><i class="ti ti-refresh"></i> 同步 Sheets</button>
             <button class="btn btn-sm btn-primary" onclick="openAddProduct()"><i class="ti ti-plus"></i> 新增品項</button>
           </div>
         </div>
@@ -831,18 +839,19 @@ function saveConfig(){
 }
 function testConn(){const id=document.getElementById('cfg-sheetId').value.trim();if(!id){document.getElementById('cfg-status').innerHTML='<span style="color:var(--red)">請先填入 Spreadsheet ID</span>';return;}window.open(`https://docs.google.com/spreadsheets/d/${id}`,'_blank');}
 
-async function syncSheets(){
-  if(!cfg.scriptUrl){alert('請先在設定中填入 Apps Script 網址');switchPage('config');return;}
-  const btn=document.querySelector('[onclick="syncSheets()"]');
-  if(btn){btn.innerHTML='<i class="ti ti-loader-2"></i> 同步中...';}
+async function syncSheets(silent){
+  if(!cfg.scriptUrl){renderInventory();return;}
+  if(!silent){
+    const ind=document.getElementById('sync-indicator');
+    if(ind){ind.style.display='flex';}
+  }
   try {
     const url=cfg.scriptUrl+'?action=read&sheet='+(cfg.sheetProducts||'Products');
     const res=await fetch(url);
     const json=await res.json();
-    if(json.error){alert('讀取失敗：'+json.error);return;}
+    if(json.error){if(!silent)alert('讀取失敗：'+json.error);renderInventory();return;}
     const rows=json.data;
-    if(!rows||rows.length<2){alert('試算表沒有資料（或只有標題列）');return;}
-    // Skip header row, parse products
+    if(!rows||rows.length<2){renderInventory();return;}
     const parsed=rows.slice(1).filter(r=>r[0]).map(r=>({
       sku:String(r[0]||''),name:String(r[1]||''),supplier:String(r[2]||''),category:String(r[3]||''),
       unit:String(r[4]||'個'),price:parseFloat(r[5])||0,
@@ -852,11 +861,11 @@ async function syncSheets(){
     products=parsed;
     persist();
     renderInventory();
-    alert(`✅ 同步成功！已載入 ${parsed.length} 筆商品資料。`);
   } catch(e){
-    alert('連線失敗，請確認 Apps Script 網址正確：'+e.message);
+    renderInventory();
   } finally {
-    if(btn){btn.innerHTML='<i class="ti ti-refresh"></i> 同步 Sheets';}
+    const ind=document.getElementById('sync-indicator');
+    if(ind){ind.style.display='none';}
   }
 }
 
@@ -880,7 +889,8 @@ function exportCSV(){
 function closeModal(id){document.getElementById(id).style.display='none';}
 function handleOverlayClick(e,id){if(e.target===e.currentTarget)closeModal(id);}
 
-loadConfig();applyLabelsToDOM();renderInventory();
+loadConfig();applyLabelsToDOM();
+if(cfg.scriptUrl){syncSheets();}else{renderInventory();}
 </script>
 </body>
 </html>
