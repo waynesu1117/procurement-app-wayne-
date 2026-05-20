@@ -241,13 +241,16 @@
     <div class="config-panel">
       <h3><i class="ti ti-brand-google"></i> Google Sheets 串接</h3>
       <div class="notice"><i class="ti ti-info-circle"></i><span>Spreadsheet ID 在網址列 <code>spreadsheets/d/<b>這一段</b>/edit</code> 取得。</span></div>
-      <div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:180px 1fr;gap:10px;align-items:center;margin-bottom:12px">
         <label style="font-size:13px;color:var(--text2)">Spreadsheet ID</label><input type="text" id="cfg-sheetId"/>
         <label style="font-size:13px;color:var(--text2)">Products 工作表</label><input type="text" id="cfg-sheetProducts" value="Products"/>
         <label style="font-size:13px;color:var(--text2)">PurchaseOrders 工作表</label><input type="text" id="cfg-sheetPO" value="PurchaseOrders"/>
+        <label style="font-size:13px;color:var(--text2)">Apps Script 網址</label><input type="text" id="cfg-scriptUrl" placeholder="https://script.google.com/macros/s/..."/>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="saveConfig()"><i class="ti ti-check"></i> 儲存</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="saveConfig()"><i class="ti ti-check"></i> 儲存設定</button>
+        <button class="btn btn-east" onclick="syncSheets()"><i class="ti ti-refresh"></i> 從 Sheets 同步</button>
+        <button class="btn btn-west" onclick="pushToSheets()"><i class="ti ti-upload"></i> 推送到 Sheets</button>
         <button class="btn" onclick="testConn()"><i class="ti ti-external-link"></i> 開啟試算表</button>
       </div>
       <div id="cfg-status" style="margin-top:10px;font-size:13px"></div>
@@ -614,9 +617,9 @@ function saveProduct(){
     wstock:parseFloat(document.getElementById('f-wstock').value)||0,wsafety:parseFloat(document.getElementById('f-wsafety').value)||0,wusage:parseFloat(document.getElementById('f-wusage').value)||0,wlead:parseInt(document.getElementById('f-wlead').value)||40};
   const idx=parseInt(document.getElementById('f-idx').value);
   if(idx>=0)products[idx]=p;else products.push(p);
-  persist();closeModal('modal-product');renderInventory();
+  persist();closeModal('modal-product');renderInventory();pushToSheets();
 }
-function deleteProduct(i){if(!confirm(`確定刪除「${products[i].name}」？`))return;products.splice(i,1);persist();renderInventory();}
+function deleteProduct(i){if(!confirm(`確定刪除「${products[i].name}」？`))return;products.splice(i,1);persist();renderInventory();pushToSheets();}
 
 function openAddAccel(){document.getElementById('a-date').value='';document.getElementById('a-mult').value='';document.getElementById('a-note').value='';document.getElementById('modal-accel').style.display='';}
 function saveAccel(){const date=document.getElementById('a-date').value,mult=parseFloat(document.getElementById('a-mult').value),note=document.getElementById('a-note').value.trim();if(!date||!mult||mult<=0){alert('請填入日期與倍數');return;}accels.push({date,mult,note});persist();closeModal('modal-accel');renderForecast();}
@@ -643,7 +646,7 @@ function saveOrder(){
   const qty=parseFloat(document.getElementById('o-qty').value);if(!qty||qty<=0){alert('請填入採購數量');return;}
   const warehouse=document.getElementById('o-warehouse').value;
   const o={poNum:'PO-'+fmtFull(TODAY).replace(/-/g,'')+'-'+String(orders.length+1).padStart(3,'0'),warehouse,sku:opt.value,name:opt.getAttribute('data-name'),supplier:opt.getAttribute('data-supplier'),unit:opt.getAttribute('data-unit'),qty,price:parseFloat(document.getElementById('o-price').value)||0,date:document.getElementById('o-date').value,eta:document.getElementById('o-eta').value,status:document.getElementById('o-status').value};
-  orders.push(o);persist();closeModal('modal-order');renderOrders();
+  orders.push(o);persist();closeModal('modal-order');renderOrders();pushToSheets();
 }
 function cycleStatus(i){
   const c={'待下單':'已下單','已下單':'已到倉','已到倉':'待下單'};
@@ -655,9 +658,9 @@ function cycleStatus(i){
       else p.wstock=Math.round((p.wstock+orders[i].qty)*10)/10;
     }
   }
-  persist();renderOrders();renderStats();
+  persist();renderOrders();renderStats();pushToSheets();
 }
-function deleteOrder(i){if(!confirm('確定刪除？'))return;orders.splice(i,1);persist();renderOrders();}
+function deleteOrder(i){if(!confirm('確定刪除？'))return;orders.splice(i,1);persist();renderOrders();pushToSheets();}
 function quickOrder(sku){switchPage('orders');setTimeout(()=>openAddOrder('east',sku),50);}
 
 function applyLabelsToDOM(){
@@ -680,10 +683,62 @@ function applyLabels(){
 }
 function resetLabels(){if(!confirm('確定還原預設值？'))return;labels=Object.assign({},DEFAULT_LABELS);localStorage.setItem('proc_labels',JSON.stringify(labels));loadLabelInputs();applyLabelsToDOM();document.getElementById('lbl-status').innerHTML='<span style="color:var(--text2)">已還原預設值</span>';renderInventory();}
 
-function loadConfig(){if(cfg.sheetId)document.getElementById('cfg-sheetId').value=cfg.sheetId;if(cfg.sheetProducts)document.getElementById('cfg-sheetProducts').value=cfg.sheetProducts;if(cfg.sheetPO)document.getElementById('cfg-sheetPO').value=cfg.sheetPO;}
-function saveConfig(){cfg={sheetId:document.getElementById('cfg-sheetId').value.trim(),sheetProducts:document.getElementById('cfg-sheetProducts').value.trim()||'Products',sheetPO:document.getElementById('cfg-sheetPO').value.trim()||'PurchaseOrders'};localStorage.setItem('proc_config',JSON.stringify(cfg));document.getElementById('cfg-status').innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> 已儲存</span>';}
+function loadConfig(){
+  if(cfg.sheetId)document.getElementById('cfg-sheetId').value=cfg.sheetId;
+  if(cfg.sheetProducts)document.getElementById('cfg-sheetProducts').value=cfg.sheetProducts;
+  if(cfg.sheetPO)document.getElementById('cfg-sheetPO').value=cfg.sheetPO;
+  if(cfg.scriptUrl)document.getElementById('cfg-scriptUrl').value=cfg.scriptUrl;
+}
+function saveConfig(){
+  cfg={
+    sheetId:document.getElementById('cfg-sheetId').value.trim(),
+    sheetProducts:document.getElementById('cfg-sheetProducts').value.trim()||'Products',
+    sheetPO:document.getElementById('cfg-sheetPO').value.trim()||'PurchaseOrders',
+    scriptUrl:document.getElementById('cfg-scriptUrl').value.trim()
+  };
+  localStorage.setItem('proc_config',JSON.stringify(cfg));
+  document.getElementById('cfg-status').innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> 已儲存</span>';
+}
 function testConn(){const id=document.getElementById('cfg-sheetId').value.trim();if(!id){document.getElementById('cfg-status').innerHTML='<span style="color:var(--red)">請先填入 Spreadsheet ID</span>';return;}window.open(`https://docs.google.com/spreadsheets/d/${id}`,'_blank');}
-function syncSheets(){if(!cfg.sheetId){alert('請先在設定中填入 Spreadsheet ID');switchPage('config');return;}alert(`將從 Google Sheets（${cfg.sheetId}）同步資料。`);}
+
+async function syncSheets(){
+  if(!cfg.scriptUrl){alert('請先在設定中填入 Apps Script 網址');switchPage('config');return;}
+  const btn=document.querySelector('[onclick="syncSheets()"]');
+  if(btn){btn.innerHTML='<i class="ti ti-loader-2"></i> 同步中...';}
+  try {
+    const url=cfg.scriptUrl+'?action=read&sheet='+(cfg.sheetProducts||'Products');
+    const res=await fetch(url);
+    const json=await res.json();
+    if(json.error){alert('讀取失敗：'+json.error);return;}
+    const rows=json.data;
+    if(!rows||rows.length<2){alert('試算表沒有資料（或只有標題列）');return;}
+    // Skip header row, parse products
+    const parsed=rows.slice(1).filter(r=>r[0]).map(r=>({
+      sku:String(r[0]||''),name:String(r[1]||''),supplier:String(r[2]||''),category:String(r[3]||''),
+      unit:String(r[4]||'個'),price:parseFloat(r[5])||0,
+      estock:parseFloat(r[6])||0,esafety:parseFloat(r[7])||0,eusage:parseFloat(r[8])||0,elead:parseInt(r[9])||50,
+      wstock:parseFloat(r[10])||0,wsafety:parseFloat(r[11])||0,wusage:parseFloat(r[12])||0,wlead:parseInt(r[13])||40
+    }));
+    products=parsed;
+    persist();
+    renderInventory();
+    alert(`✅ 同步成功！已載入 ${parsed.length} 筆商品資料。`);
+  } catch(e){
+    alert('連線失敗，請確認 Apps Script 網址正確：'+e.message);
+  } finally {
+    if(btn){btn.innerHTML='<i class="ti ti-refresh"></i> 同步 Sheets';}
+  }
+}
+
+async function pushToSheets(){
+  if(!cfg.scriptUrl){alert('請先設定 Apps Script 網址');return;}
+  try {
+    const rows=products.map(p=>[p.sku,p.name,p.supplier,p.category,p.unit,p.price,p.estock,p.esafety,p.eusage,p.elead,p.wstock,p.wsafety,p.wusage,p.wlead]);
+    await fetch(cfg.scriptUrl,{method:'POST',body:JSON.stringify({action:'write',sheet:cfg.sheetProducts||'Products',data:rows})});
+    const oRows=orders.map(o=>[o.poNum,o.warehouse,o.sku,o.name,o.supplier,o.unit,o.qty,o.price,o.date,o.eta,o.status]);
+    await fetch(cfg.scriptUrl,{method:'POST',body:JSON.stringify({action:'write',sheet:cfg.sheetPO||'PurchaseOrders',data:oRows})});
+  } catch(e){console.log('推送 Sheets 失敗',e);}
+}
 
 function exportCSV(){
   const h='SKU,品名,工廠,類別,單位,東岸庫存,東岸安全庫存,東岸日銷量,東岸Lead Time,東岸再訂購點,東岸耗盡日,西岸庫存,西岸安全庫存,西岸日銷量,西岸Lead Time,西岸再訂購點,西岸耗盡日\n';
