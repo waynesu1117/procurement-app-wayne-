@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>採購Pro — 製造業原物料採購系統</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+TC:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8f7f4;
+      --surface: #ffffff;
+      --surface2: #f1f0ec;
+      --border: rgba(0,0,0,0.10);
+      --border2: rgba(0,0,0,0.18);
+      --text: #1a1a18;
+      --text2: #6b6b67;
+      --text3: #a0a09b;
+      --blue: #185FA5;
+      --blue-bg: #E6F1FB;
+      --blue-text: #0C447C;
+      --green: #3B6D11;
+      --green-bg: #EAF3DE;
+      --amber: #854F0B;
+      --amber-bg: #FAEEDA;
+      --red: #A32D2D;
+      --red-bg: #FCEBEB;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 8px rgba(0,0,0,0.04);
+    }
+
+    body {
+      font-family: 'IBM Plex Sans TC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Layout */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 0;
+      z-index: 10;
+    }
+    .sidebar-logo {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px; font-weight: 500;
+    }
+    .sidebar-logo span { color: var(--blue); }
+    .sidebar-logo small { display: block; font-size: 11px; color: var(--text3); font-weight: 400; margin-top: 2px; }
+    .sidebar-nav { padding: 12px 10px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: var(--radius-sm);
+      font-size: 13px; color: var(--text2);
+      cursor: pointer; transition: all 0.15s;
+      margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--blue-bg); color: var(--blue-text); font-weight: 500; }
+    .nav-item i { font-size: 16px; }
+    .nav-badge {
+      margin-left: auto; background: var(--red-bg); color: var(--red);
+      font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 99px;
+    }
+    .sidebar-footer {
+      padding: 12px 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .main { margin-left: 220px; padding: 28px 32px; min-height: 100vh; }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 20px; font-weight: 500; }
+    .page-header p { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card-pad { padding: 20px 24px; }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .stat-val { font-size: 26px; font-weight: 500; }
+    .stat-val.c-red { color: var(--red); }
+    .stat-val.c-amber { color: var(--amber); }
+    .stat-val.c-green { color: var(--green); }
+    .stat-val.c-blue { color: var(--blue); }
+
+    /* Toolbar */
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+    .toolbar-title { font-size: 14px; font-weight: 500; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; font-size: 13px; font-family: inherit;
+      border: 1px solid var(--border2); border-radius: var(--radius-sm);
+      background: var(--surface); color: var(--text);
+      cursor: pointer; transition: all 0.15s; font-weight: 400;
+    }
+    .btn:hover { background: var(--surface2); }
+    .btn-primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .btn-primary:hover { background: var(--blue-text); border-color: var(--blue-text); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-danger { color: var(--red); border-color: #F09595; }
+    .btn-danger:hover { background: var(--red-bg); }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Table */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      background: var(--surface2); padding: 10px 14px;
+      text-align: left; font-weight: 500; font-size: 11px;
+      color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafaf8; }
+    tbody tr.row-danger td { background: #fff8f6; }
+    tbody tr.row-warn td { background: #fffcf5; }
+    .mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .badge-red { background: var(--red-bg); color: var(--red); }
+    .badge-amber { background: var(--amber-bg); color: var(--amber); }
+    .badge-green { background: var(--green-bg); color: var(--green); }
+    .badge-blue { background: var(--blue-bg); color: var(--blue-text); }
+    .badge-gray { background: var(--surface2); color: var(--text2); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; padding: 16px;
+    }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      padding: 24px; width: 100%; max-width: 500px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-title { font-size: 15px; font-weight: 500; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+    /* Forms */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row { display: flex; flex-direction: column; gap: 5px; }
+    .form-row.full { grid-column: span 2; }
+    label { font-size: 12px; color: var(--text2); font-weight: 500; }
+    input[type=text], input[type=number], input[type=date], select, textarea {
+      padding: 8px 11px; border: 1px solid var(--border2);
+      border-radius: var(--radius-sm); font-size: 13px;
+      font-family: inherit; background: var(--surface); color: var(--text);
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+    }
+
+    /* Config panel */
+    .config-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 24px;
+      margin-bottom: 24px; box-shadow: var(--shadow);
+    }
+    .config-panel h3 { font-size: 14px; font-weight: 500; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .config-row { display: grid; grid-template-columns: 160px 1fr; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .config-row label { font-size: 13px; color: var(--text2); }
+    .notice {
+      background: var(--blue-bg); border: 1px solid #B5D4F4;
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      font-size: 13px; color: var(--blue-text);
+      display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px;
+    }
+    .notice i { flex-shrink: 0; margin-top: 1px; }
+
+    /* Alert cards */
+    .alert-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 20px;
+      margin-bottom: 10px; box-shadow: var(--shadow);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .alert-card.danger { border-left: 3px solid #E24B4A; }
+    .alert-card.warn { border-left: 3px solid #EF9F27; }
+
+    /* Sheet guide */
+    .sheet-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .sheet-col { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
+    .sheet-col h4 { font-size: 12px; font-weight: 500; color: var(--blue-text); margin-bottom: 6px; }
+    .sheet-col p { font-size: 11px; color: var(--text2); line-height: 1.8; }
+
+    /* Page visibility */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 48px 20px; color: var(--text3); }
+    .empty i { font-size: 36px; display: block; margin-bottom: 10px; }
+    .empty p { font-size: 13px; }
+
+    /* Progress bar */
+    .stock-bar { width: 80px; height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .stock-bar-fill { height: 100%; border-radius: 99px; transition: width 0.3s; }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main { margin-left: 0; padding: 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-row.full { grid-column: span 1; }
+      .sheet-guide { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    採購<span>Pro</span>
+    <small>製造業原物料採購系統</small>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" onclick="switchPage('inventory')">
+      <i class="ti ti-package"></i> 庫存總覽
+    </button>
+    <button class="nav-item" onclick="switchPage('orders')">
+      <i class="ti ti-clipboard-list"></i> 採購單
+    </button>
+    <button class="nav-item" onclick="switchPage('alerts')" id="nav-alerts">
+      <i class="ti ti-bell"></i> 低庫存警示
+      <span class="nav-badge" id="alert-count" style="display:none"></span>
+    </button>
+    <button class="nav-item" onclick="switchPage('config')">
+      <i class="ti ti-brand-google"></i> Google Sheets 設定
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn btn-sm" style="width:100%;justify-content:center;" onclick="exportCSV()">
+      <i class="ti ti-download"></i> 匯出 CSV
+    </button>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- 庫存頁 -->
+  <div class="page active" id="page-inventory">
+    <div class="page-header">
+      <h1>庫存總覽</h1>
+      <p>原物料即時庫存狀態、再訂購點與耗盡預測</p>
+    </div>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="card">
+      <div class="card-pad" style="padding-bottom:0;">
+        <div class="toolbar">
+          <span class="toolbar-title">原物料清單</span>
+          <div class="btn-group">
+            <button class="btn btn-sm" onclick="syncSheets()"><i class="ti ti-refresh"></i> 從 Sheets 同步</button>
+            <button class="btn btn-sm btn-primary" onclick="openAddProduct()"><i class="ti ti-plus"></i> 新增品項</button>
+          </div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>SKU</th><th>品名</th><th>類別</th><th>供應商</th>
+              <th>現有庫存</th><th>安全庫存</th><th>日均耗量</th>
+              <th>Lead Time</th><th>再訂購點</th><th>庫存水位</th>
+              <th>耗盡日</th><th>狀態</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 採購單頁 -->
+  <div class="page" id="page-orders">
+    <div class="page-header">
+      <h1>採購單管理</h1>
+      <p>建立、追蹤採購訂單，到貨時自動更新庫存</p>
+    </div>
+    <div class="card">
+      <div class="card-pad" style="padding-bottom:0;">
+        <div class="toolbar">
+          <span class="toolbar-title">採購單列表</span>
+          <button class="btn btn-sm btn-primary" onclick="openAddOrder()"><i class="ti ti-plus"></i> 建立採購單</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>採購單號</th><th>SKU</th><th>品名</th><th>供應商</th>
+              <th>採購量</th><th>單價</th><th>總金額</th>
+              <th>下單日期</th><th>預計到貨</th><th>狀態</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 警示頁 -->
+  <div class="page" id="page-alerts">
+    <div class="page-header">
+      <h1>低庫存警示</h1>
+      <p>需要緊急補料或即將觸及再訂購點的品項</p>
+    </div>
+    <div id="alerts-list"></div>
+  </div>
+
+  <!-- 設定頁 -->
+  <div class="page" id="page-config">
+    <div class="page-header">
+      <h1>Google Sheets 設定</h1>
+      <p>串接你的 Google Sheets 作為資料來源</p>
+    </div>
+    <div class="config-panel">
+      <h3><i class="ti ti-table"></i> Spreadsheet 連線設定</h3>
+      <div class="notice">
+        <i class="ti ti-info-circle"></i>
+        <span>請先將你的 Google Sheets 設為「知道連結的人可以編輯」，或使用 Google Service Account 授權。Spreadsheet ID 在網址列 <code>spreadsheets/d/<b>這一段</b>/edit</code> 取得。</span>
+      </div>
+      <div class="config-row">
+        <label>Spreadsheet ID</label>
+        <input type="text" id="cfg-sheetId" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" />
+      </div>
+      <div class="config-row">
+        <label>Products 工作表名稱</label>
+        <input type="text" id="cfg-sheetProducts" value="Products" />
+      </div>
+      <div class="config-row">
+        <label>PurchaseOrders 工作表名稱</label>
+        <input type="text" id="cfg-sheetPO" value="PurchaseOrders" />
+      </div>
+      <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="saveConfig()"><i class="ti ti-check"></i> 儲存設定</button>
+        <button class="btn" onclick="testConn()"><i class="ti ti-plug"></i> 測試連線</button>
+        <button class="btn" onclick="createSheetTemplate()"><i class="ti ti-table-plus"></i> 建立試算表範本說明</button>
+      </div>
+      <div id="cfg-status" style="margin-top:12px; font-size:13px;"></div>
+
+      <div class="sheet-guide">
+        <div class="sheet-col">
+          <h4><i class="ti ti-table" style="font-size:13px;"></i> Products 工作表欄位</h4>
+          <p>A: SKU<br>B: 品名<br>C: 供應商<br>D: 類別<br>E: 單位<br>F: 現有庫存<br>G: 安全庫存<br>H: 日均耗量<br>I: Lead Time（天）<br>J: 單價</p>
+        </div>
+        <div class="sheet-col">
+          <h4><i class="ti ti-table" style="font-size:13px;"></i> PurchaseOrders 工作表欄位</h4>
+          <p>A: 採購單號<br>B: SKU<br>C: 品名<br>D: 供應商<br>E: 單位<br>F: 採購量<br>G: 單價<br>H: 下單日期<br>I: 預計到貨日<br>J: 狀態</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Modal: 新增/編輯品項 -->
+<div class="modal-overlay" id="modal-product" style="display:none;" onclick="handleOverlayClick(event,'modal-product')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title"><i class="ti ti-package"></i> <span id="modal-product-title">新增原物料品項</span></div>
+    <div class="form-grid">
+      <div class="form-row"><label>SKU *</label><input id="f-sku" type="text" placeholder="RM-001" /></div>
+      <div class="form-row"><label>品名 *</label><input id="f-name" type="text" placeholder="冷軋鋼板 2mm" /></div>
+      <div class="form-row"><label>供應商</label><input id="f-supplier" type="text" /></div>
+      <div class="form-row"><label>原料類別</label><input id="f-category" type="text" placeholder="金屬 / 化學品 / 耗材..." /></div>
+      <div class="form-row"><label>單位</label><input id="f-unit" type="text" placeholder="kg / 片 / 桶 / 個" /></div>
+      <div class="form-row"><label>單價（元）</label><input id="f-price" type="number" min="0" step="0.01" /></div>
+      <div class="form-row"><label>現有庫存</label><input id="f-stock" type="number" min="0" /></div>
+      <div class="form-row"><label>安全庫存（最低警戒線）</label><input id="f-safety" type="number" min="0" /></div>
+      <div class="form-row"><label>日均耗量</label><input id="f-usage" type="number" min="0" step="0.1" /></div>
+      <div class="form-row"><label>Lead Time（天）</label><input id="f-lead" type="number" min="1" /></div>
+    </div>
+    <input type="hidden" id="f-idx" value="-1" />
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-product')">取消</button>
+      <button class="btn btn-primary" onclick="saveProduct()"><i class="ti ti-check"></i> 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: 建立採購單 -->
+<div class="modal-overlay" id="modal-order" style="display:none;" onclick="handleOverlayClick(event,'modal-order')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title"><i class="ti ti-clipboard-list"></i> 建立採購單</div>
+    <div class="form-grid">
+      <div class="form-row full">
+        <label>選擇品項 *</label>
+        <select id="o-sku" onchange="onSkuChange()"><option value="">— 選擇 SKU —</option></select>
+      </div>
+      <div class="form-row"><label>採購數量 *</label><input id="o-qty" type="number" min="1" /></div>
+      <div class="form-row"><label>單價（元）</label><input id="o-price" type="number" min="0" step="0.01" /></div>
+      <div class="form-row"><label>下單日期</label><input id="o-date" type="date" /></div>
+      <div class="form-row"><label>預計到貨日</label><input id="o-eta" type="date" /></div>
+      <div class="form-row full">
+        <label>狀態</label>
+        <select id="o-status">
+          <option value="待下單">待下單</option>
+          <option value="已下單">已下單</option>
+          <option value="已到貨">已到貨</option>
+        </select>
+      </div>
+    </div>
+    <input type="hidden" id="o-idx" value="-1" />
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-order')">取消</button>
+      <button class="btn btn-primary" onclick="saveOrder()"><i class="ti ti-check"></i> 儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let products = JSON.parse(localStorage.getItem('proc_products') || 'null');
+let orders   = JSON.parse(localStorage.getItem('proc_orders')   || '[]');
+let cfg      = JSON.parse(localStorage.getItem('proc_config')   || '{}');
+
+if (!products) {
+  products = [
+    { sku:'RM-001', name:'冷軋鋼板 2mm',   supplier:'台鋼供應', category:'金屬',  unit:'片',  stock:320, safety:100, usage:18,  lead:7,  price:450  },
+    { sku:'RM-002', name:'聚乙烯顆粒',     supplier:'南亞塑膠', category:'塑料',  unit:'kg',  stock:85,  safety:200, usage:22,  lead:14, price:35   },
+    { sku:'RM-003', name:'潤滑油桶 20L',   supplier:'殼牌代理', category:'耗材',  unit:'桶',  stock:18,  safety:10,  usage:1.2, lead:5,  price:1200 },
+    { sku:'RM-004', name:'鋁合金鑄件 A型', supplier:'精鑄五金', category:'金屬',  unit:'個',  stock:240, safety:50,  usage:8,   lead:21, price:890  },
+    { sku:'RM-005', name:'環氧樹脂',       supplier:'長春化工', category:'化學品', unit:'kg',  stock:60,  safety:80,  usage:5,   lead:10, price:280  },
+  ];
+  persist();
+}
+
+function persist() {
+  localStorage.setItem('proc_products', JSON.stringify(products));
+  localStorage.setItem('proc_orders',   JSON.stringify(orders));
+}
+
+// ── Calculations ───────────────────────────────────────────────────────────
+function rop(p)     { return Math.round(p.usage * p.lead + p.safety); }
+function daysLeft(p){ return p.usage > 0 ? Math.round(p.stock / p.usage) : 9999; }
+function expiryDate(p) {
+  if (p.usage <= 0) return '—';
+  const d = new Date(); d.setDate(d.getDate() + daysLeft(p));
+  return (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getDate().toString().padStart(2,'0');
+}
+function status(p) {
+  if (p.stock <= p.safety) return 'danger';
+  if (p.stock <= rop(p))   return 'warn';
+  return 'ok';
+}
+function stockPct(p) {
+  const target = rop(p) * 2 || 1;
+  return Math.min(100, Math.round(p.stock / target * 100));
+}
+
+// ── Render: Stats ──────────────────────────────────────────────────────────
+function renderStats() {
+  const danger  = products.filter(p => status(p) === 'danger').length;
+  const warn    = products.filter(p => status(p) === 'warn').length;
+  const pending = orders.filter(o => o.status === '待下單').length;
+  const transit = orders.filter(o => o.status === '已下單').length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">品項總數</div><div class="stat-val">${products.length}</div></div>
+    <div class="stat-card"><div class="stat-label">嚴重低庫存</div><div class="stat-val ${danger?'c-red':''}">${danger}</div></div>
+    <div class="stat-card"><div class="stat-label">即將需採購</div><div class="stat-val ${warn?'c-amber':''}">${warn}</div></div>
+    <div class="stat-card"><div class="stat-label">待下單</div><div class="stat-val ${pending?'c-amber':''}">${pending}</div></div>
+    <div class="stat-card"><div class="stat-label">在途訂單</div><div class="stat-val c-blue">${transit}</div></div>
+  `;
+
+  const total = danger + warn;
+  const badge = document.getElementById('alert-count');
+  if (total > 0) { badge.textContent = total; badge.style.display = ''; }
+  else badge.style.display = 'none';
+}
+
+// ── Render: Inventory ──────────────────────────────────────────────────────
+function renderInventory() {
+  renderStats();
+  const tb = document.getElementById('inventory-tbody');
+  if (!products.length) {
+    tb.innerHTML = '<tr><td colspan="13"><div class="empty"><i class="ti ti-package-off"></i><p>尚無品項，點擊右上角新增</p></div></td></tr>';
+    return;
+  }
+  tb.innerHTML = products.map((p, i) => {
+    const st  = status(p);
+    const pct = stockPct(p);
+    const barColor = st === 'danger' ? '#E24B4A' : st === 'warn' ? '#EF9F27' : '#639922';
+    const badge = st === 'danger'
+      ? '<span class="badge badge-red"><i class="ti ti-alert-triangle" style="font-size:10px;"></i> 緊急補料</span>'
+      : st === 'warn'
+      ? '<span class="badge badge-amber">需採購</span>'
+      : '<span class="badge badge-green">正常</span>';
+    return `<tr class="${st==='danger'?'row-danger':st==='warn'?'row-warn':''}">
+      <td class="mono">${p.sku}</td>
+      <td style="font-weight:500;">${p.name}</td>
+      <td><span class="badge badge-gray">${p.category||'—'}</span></td>
+      <td style="color:var(--text2);font-size:12px;">${p.supplier||'—'}</td>
+      <td style="font-weight:500;">${p.stock.toLocaleString()} <span style="color:var(--text3);font-size:11px;">${p.unit}</span></td>
+      <td style="color:var(--text2);">${p.safety.toLocaleString()}</td>
+      <td>${p.usage}/${p.unit}/天</td>
+      <td>${p.lead} 天</td>
+      <td style="font-weight:500;color:${st!=='ok'?'var(--amber)':'inherit'};">${rop(p).toLocaleString()}</td>
+      <td><div class="stock-bar"><div class="stock-bar-fill" style="width:${pct}%;background:${barColor};"></div></div></td>
+      <td style="font-size:12px;">${expiryDate(p)}</td>
+      <td>${badge}</td>
+      <td>
+        <div class="btn-group">
+          <button class="btn btn-sm" onclick="openEditProduct(${i})" title="編輯"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="deleteProduct(${i})" title="刪除"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Render: Orders ─────────────────────────────────────────────────────────
+function renderOrders() {
+  const tb = document.getElementById('orders-tbody');
+  if (!orders.length) {
+    tb.innerHTML = '<tr><td colspan="11"><div class="empty"><i class="ti ti-clipboard-off"></i><p>尚無採購單</p></div></td></tr>';
+    return;
+  }
+  tb.innerHTML = orders.map((o, i) => {
+    const bc = o.status === '已到貨' ? 'badge-green' : o.status === '已下單' ? 'badge-blue' : 'badge-amber';
+    return `<tr>
+      <td class="mono">${o.poNum}</td>
+      <td class="mono" style="font-size:11px;">${o.sku}</td>
+      <td>${o.name}</td>
+      <td style="color:var(--text2);font-size:12px;">${o.supplier||'—'}</td>
+      <td>${Number(o.qty).toLocaleString()} ${o.unit||''}</td>
+      <td>$${Number(o.price).toLocaleString()}</td>
+      <td style="font-weight:500;">$${Math.round(o.qty * o.price).toLocaleString()}</td>
+      <td style="font-size:12px;">${o.date||'—'}</td>
+      <td style="font-size:12px;">${o.eta||'—'}</td>
+      <td><span class="badge ${bc}">${o.status}</span></td>
+      <td>
+        <div class="btn-group">
+          <button class="btn btn-sm" onclick="cycleStatus(${i})" title="更新狀態"><i class="ti ti-arrow-right"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="deleteOrder(${i})" title="刪除"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Render: Alerts ─────────────────────────────────────────────────────────
+function renderAlerts() {
+  renderStats();
+  const list = document.getElementById('alerts-list');
+  const bad = products.filter(p => status(p) !== 'ok');
+  if (!bad.length) {
+    list.innerHTML = '<div class="empty" style="padding:80px 20px;"><i class="ti ti-circle-check" style="color:var(--green);"></i><p>目前無低庫存警示，所有品項狀態正常</p></div>';
+    return;
+  }
+  list.innerHTML = bad.map(p => {
+    const st = status(p);
+    const suggest = Math.max(rop(p) * 2 - p.stock, 0);
+    return `<div class="alert-card ${st}">
+      <div>
+        <div style="font-weight:500;font-size:14px;">${p.name} <span class="mono" style="color:var(--text3);">${p.sku}</span></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px;">
+          現有 <strong style="color:${st==='danger'?'var(--red)':'var(--amber)'};">${p.stock} ${p.unit}</strong>
+          ／ 再訂購點 <strong>${rop(p)} ${p.unit}</strong>
+          ／ 建議採購量 <strong>${suggest} ${p.unit}</strong>
+          ／ 預計耗盡 <strong>${expiryDate(p)}</strong>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="quickOrder('${p.sku}')">
+        <i class="ti ti-plus"></i> 快速建立採購單
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget && event.currentTarget.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => {
+    if (b.getAttribute('onclick') === `switchPage('${name}')`) b.classList.add('active');
+  });
+  if (name === 'inventory') renderInventory();
+  if (name === 'orders')    renderOrders();
+  if (name === 'alerts')    renderAlerts();
+}
+
+// ── Product CRUD ───────────────────────────────────────────────────────────
+function openAddProduct() {
+  ['sku','name','supplier','category','unit','price','stock','safety','usage','lead']
+    .forEach(f => document.getElementById('f-'+f).value = '');
+  document.getElementById('f-idx').value = -1;
+  document.getElementById('modal-product-title').textContent = '新增原物料品項';
+  document.getElementById('modal-product').style.display = '';
+}
+
+function openEditProduct(i) {
+  const p = products[i];
+  document.getElementById('f-sku').value      = p.sku;
+  document.getElementById('f-name').value     = p.name;
+  document.getElementById('f-supplier').value = p.supplier || '';
+  document.getElementById('f-category').value = p.category || '';
+  document.getElementById('f-unit').value     = p.unit;
+  document.getElementById('f-price').value    = p.price;
+  document.getElementById('f-stock').value    = p.stock;
+  document.getElementById('f-safety').value   = p.safety;
+  document.getElementById('f-usage').value    = p.usage;
+  document.getElementById('f-lead').value     = p.lead;
+  document.getElementById('f-idx').value      = i;
+  document.getElementById('modal-product-title').textContent = '編輯品項';
+  document.getElementById('modal-product').style.display = '';
+}
+
+function saveProduct() {
+  const sku  = document.getElementById('f-sku').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  if (!sku || !name) { alert('SKU 和品名為必填'); return; }
+  const p = {
+    sku, name,
+    supplier: document.getElementById('f-supplier').value.trim(),
+    category: document.getElementById('f-category').value.trim(),
+    unit:   document.getElementById('f-unit').value.trim() || '個',
+    price:  parseFloat(document.getElementById('f-price').value)  || 0,
+    stock:  parseFloat(document.getElementById('f-stock').value)  || 0,
+    safety: parseFloat(document.getElementById('f-safety').value) || 0,
+    usage:  parseFloat(document.getElementById('f-usage').value)  || 0,
+    lead:   parseInt(document.getElementById('f-lead').value)     || 7,
+  };
+  const idx = parseInt(document.getElementById('f-idx').value);
+  if (idx >= 0) products[idx] = p; else products.push(p);
+  persist(); closeModal('modal-product'); renderInventory();
+}
+
+function deleteProduct(i) {
+  if (!confirm(`確定刪除「${products[i].name}」？`)) return;
+  products.splice(i, 1); persist(); renderInventory();
+}
+
+// ── Order CRUD ─────────────────────────────────────────────────────────────
+function openAddOrder(prefillSku) {
+  const sel = document.getElementById('o-sku');
+  sel.innerHTML = '<option value="">— 選擇 SKU —</option>' +
+    products.map(p => `<option value="${p.sku}" data-name="${p.name}" data-supplier="${p.supplier}" data-unit="${p.unit}" data-price="${p.price}">${p.sku} — ${p.name}</option>`).join('');
+  if (prefillSku) sel.value = prefillSku;
+  onSkuChange();
+  document.getElementById('o-qty').value    = '';
+  document.getElementById('o-date').value   = new Date().toISOString().split('T')[0];
+  document.getElementById('o-eta').value    = '';
+  document.getElementById('o-status').value = '待下單';
+  document.getElementById('o-idx').value    = -1;
+  document.getElementById('modal-order').style.display = '';
+}
+
+function onSkuChange() {
+  const sel = document.getElementById('o-sku');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.value) {
+    document.getElementById('o-price').value = opt.getAttribute('data-price') || '';
+  }
+}
+
+function saveOrder() {
+  const sel = document.getElementById('o-sku');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) { alert('請選擇品項'); return; }
+  const qty = parseFloat(document.getElementById('o-qty').value);
+  if (!qty || qty <= 0) { alert('請填入採購數量'); return; }
+  const o = {
+    poNum:    'PO-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(orders.length+1).padStart(3,'0'),
+    sku:      opt.value,
+    name:     opt.getAttribute('data-name'),
+    supplier: opt.getAttribute('data-supplier'),
+    unit:     opt.getAttribute('data-unit'),
+    qty,
+    price:    parseFloat(document.getElementById('o-price').value) || 0,
+    date:     document.getElementById('o-date').value,
+    eta:      document.getElementById('o-eta').value,
+    status:   document.getElementById('o-status').value,
+  };
+  orders.push(o); persist(); closeModal('modal-order'); renderOrders();
+}
+
+function cycleStatus(i) {
+  const cycle = { '待下單':'已下單', '已下單':'已到貨', '已到貨':'待下單' };
+  const prev = orders[i].status;
+  orders[i].status = cycle[prev];
+  if (orders[i].status === '已到貨') {
+    const p = products.find(x => x.sku === orders[i].sku);
+    if (p) { p.stock = Math.round((p.stock + orders[i].qty) * 10) / 10; persist(); }
+  }
+  persist(); renderOrders(); renderStats();
+}
+
+function deleteOrder(i) {
+  if (!confirm('確定刪除此採購單？')) return;
+  orders.splice(i, 1); persist(); renderOrders();
+}
+
+function quickOrder(sku) {
+  switchPage('orders');
+  setTimeout(() => openAddOrder(sku), 50);
+}
+
+// ── Config ─────────────────────────────────────────────────────────────────
+function loadConfig() {
+  if (cfg.sheetId)       document.getElementById('cfg-sheetId').value = cfg.sheetId;
+  if (cfg.sheetProducts) document.getElementById('cfg-sheetProducts').value = cfg.sheetProducts;
+  if (cfg.sheetPO)       document.getElementById('cfg-sheetPO').value = cfg.sheetPO;
+}
+
+function saveConfig() {
+  cfg = {
+    sheetId:       document.getElementById('cfg-sheetId').value.trim(),
+    sheetProducts: document.getElementById('cfg-sheetProducts').value.trim() || 'Products',
+    sheetPO:       document.getElementById('cfg-sheetPO').value.trim() || 'PurchaseOrders',
+  };
+  localStorage.setItem('proc_config', JSON.stringify(cfg));
+  document.getElementById('cfg-status').innerHTML = '<span style="color:var(--green)"><i class="ti ti-check"></i> 設定已儲存</span>';
+}
+
+function testConn() {
+  const id = document.getElementById('cfg-sheetId').value.trim();
+  if (!id) { document.getElementById('cfg-status').innerHTML = '<span style="color:var(--red)">請先填入 Spreadsheet ID</span>'; return; }
+  window.open(`https://docs.google.com/spreadsheets/d/${id}`, '_blank');
+}
+
+function createSheetTemplate() {
+  alert('請依照右側欄位結構在 Google Sheets 建立兩個工作表：\n\n1. Products — 第一列填入標題：SKU、品名、供應商、類別、單位、現有庫存、安全庫存、日均耗量、Lead Time、單價\n\n2. PurchaseOrders — 第一列填入標題：採購單號、SKU、品名、供應商、單位、採購量、單價、下單日期、預計到貨日、狀態');
+}
+
+function syncSheets() {
+  if (!cfg.sheetId) { alert('請先在「Google Sheets 設定」填入 Spreadsheet ID'); switchPage('config'); return; }
+  alert(`即將從 Google Sheets（${cfg.sheetId}）同步資料。\n\n提示：在 Cursor 或 Claude Code 中，可用 MCP 工具直接讀取 Sheets 並更新本地 localStorage。`);
+}
+
+// ── Export CSV ─────────────────────────────────────────────────────────────
+function exportCSV() {
+  const header = 'SKU,品名,供應商,類別,單位,現有庫存,安全庫存,日均耗量,Lead Time,再訂購點,預計耗盡日,狀態,單價\n';
+  const rows = products.map(p =>
+    [p.sku, p.name, p.supplier, p.category, p.unit, p.stock, p.safety, p.usage, p.lead, rop(p), expiryDate(p), status(p), p.price].join(',')
+  ).join('\n');
+  const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = '採購Pro_庫存_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function handleOverlayClick(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+loadConfig();
+renderInventory();
+</script>
+</body>
+</html>
