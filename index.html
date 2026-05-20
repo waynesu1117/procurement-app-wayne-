@@ -217,7 +217,7 @@
         <h1>庫存總覽</h1>
         <p>東岸 / 西岸倉庫各自計算補貨點、Lead Time 與耗盡日</p>
       </div>
-      <div id="sync-indicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--text3);background:var(--surface2);padding:6px 12px;border-radius:99px;border:1px solid var(--border)">
+      <div id="sync-indicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--text3);background:var(--surface2);padding:6px 14px;border-radius:99px;border:1px solid var(--border)">
         <i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> 從 Sheets 載入中...
       </div>
     </div>
@@ -334,12 +334,9 @@
         <label style="font-size:13px;color:var(--text2)">Spreadsheet ID</label><input type="text" id="cfg-sheetId"/>
         <label style="font-size:13px;color:var(--text2)">Products 工作表</label><input type="text" id="cfg-sheetProducts" value="Products"/>
         <label style="font-size:13px;color:var(--text2)">PurchaseOrders 工作表</label><input type="text" id="cfg-sheetPO" value="PurchaseOrders"/>
-        <label style="font-size:13px;color:var(--text2)">Apps Script 網址</label><input type="text" id="cfg-scriptUrl" placeholder="https://script.google.com/macros/s/..."/>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="saveConfig()"><i class="ti ti-check"></i> 儲存設定</button>
-        <button class="btn btn-east" onclick="syncSheets()"><i class="ti ti-refresh"></i> 從 Sheets 同步</button>
-        <button class="btn btn-west" onclick="pushToSheets()"><i class="ti ti-upload"></i> 推送到 Sheets</button>
         <button class="btn" onclick="testConn()"><i class="ti ti-external-link"></i> 開啟試算表</button>
       </div>
       <div id="cfg-status" style="margin-top:10px;font-size:13px"></div>
@@ -850,61 +847,13 @@ function loadConfig(){
   if(cfg.sheetId)document.getElementById('cfg-sheetId').value=cfg.sheetId;
   if(cfg.sheetProducts)document.getElementById('cfg-sheetProducts').value=cfg.sheetProducts;
   if(cfg.sheetPO)document.getElementById('cfg-sheetPO').value=cfg.sheetPO;
-  if(cfg.scriptUrl)document.getElementById('cfg-scriptUrl').value=cfg.scriptUrl;
 }
 function saveConfig(){
-  cfg={
-    sheetId:document.getElementById('cfg-sheetId').value.trim(),
-    sheetProducts:document.getElementById('cfg-sheetProducts').value.trim()||'Products',
-    sheetPO:document.getElementById('cfg-sheetPO').value.trim()||'PurchaseOrders',
-    scriptUrl:document.getElementById('cfg-scriptUrl').value.trim()
-  };
+  cfg={sheetId:document.getElementById('cfg-sheetId').value.trim(),sheetProducts:document.getElementById('cfg-sheetProducts').value.trim()||'Products',sheetPO:document.getElementById('cfg-sheetPO').value.trim()||'PurchaseOrders'};
   localStorage.setItem('proc_config',JSON.stringify(cfg));
   document.getElementById('cfg-status').innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> 已儲存</span>';
 }
 function testConn(){const id=document.getElementById('cfg-sheetId').value.trim();if(!id){document.getElementById('cfg-status').innerHTML='<span style="color:var(--red)">請先填入 Spreadsheet ID</span>';return;}window.open(`https://docs.google.com/spreadsheets/d/${id}`,'_blank');}
-
-async function syncSheets(silent){
-  if(!cfg.scriptUrl){renderInventory();return;}
-  const ind=document.getElementById('sync-indicator');
-  if(ind)ind.style.display='flex';
-  try {
-    const url=cfg.scriptUrl+'?action=read&sheet='+(cfg.sheetProducts||'Products');
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),8000);
-    const res=await fetch(url,{signal:controller.signal});
-    clearTimeout(timeout);
-    const json=await res.json();
-    if(json.error){renderInventory();return;}
-    const rows=json.data;
-    if(!rows||rows.length<2){renderInventory();return;}
-    const parsed=rows.slice(1).filter(r=>r[0]).map(r=>({
-      sku:String(r[0]||''),name:String(r[1]||''),supplier:String(r[2]||''),category:String(r[3]||''),
-      unit:String(r[4]||'個'),price:parseFloat(r[5])||0,
-      estock:parseFloat(r[6])||0,esafety:parseFloat(r[7])||0,eusage:parseFloat(r[8])||0,elead:parseInt(r[9])||50,
-      wstock:parseFloat(r[10])||0,wsafety:parseFloat(r[11])||0,wusage:parseFloat(r[12])||0,wlead:parseInt(r[13])||40,
-      eusage7:parseFloat(r[14])||0,eusage30:parseFloat(r[15])||0,eusageSeason:parseFloat(r[16])||0,
-      wusage7:parseFloat(r[17])||0,wusage30:parseFloat(r[18])||0,wusageSeason:parseFloat(r[19])||0
-    }));
-    products=parsed;
-    persist();
-    renderInventory();
-  } catch(e){
-    renderInventory();
-  } finally {
-    if(ind)ind.style.display='none';
-  }
-}
-
-async function pushToSheets(){
-  if(!cfg.scriptUrl){alert('請先設定 Apps Script 網址');return;}
-  try {
-    const rows=products.map(p=>[p.sku,p.name,p.supplier,p.category,p.unit,p.price,p.estock,p.esafety,p.eusage,p.elead,p.wstock,p.wsafety,p.wusage,p.wlead]);
-    await fetch(cfg.scriptUrl,{method:'POST',body:JSON.stringify({action:'write',sheet:cfg.sheetProducts||'Products',data:rows})});
-    const oRows=orders.map(o=>[o.poNum,o.warehouse,o.sku,o.name,o.supplier,o.unit,o.qty,o.price,o.date,o.eta,o.status]);
-    await fetch(cfg.scriptUrl,{method:'POST',body:JSON.stringify({action:'write',sheet:cfg.sheetPO||'PurchaseOrders',data:oRows})});
-  } catch(e){console.log('推送 Sheets 失敗',e);}
-}
 
 function exportCSV(){
   const h='SKU,品名,工廠,類別,單位,東岸庫存,東岸安全庫存,東岸日銷量,東岸Lead Time,東岸再訂購點,東岸耗盡日,西岸庫存,西岸安全庫存,西岸日銷量,西岸Lead Time,西岸再訂購點,西岸耗盡日\n';
@@ -913,11 +862,46 @@ function exportCSV(){
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='採購工具_'+fmtFull(TODAY)+'.csv';a.click();
 }
 
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbxGnjePafHIn-sJeBgWwnHflWLgg49Re63jjPv6UqmU21N5ZHNT71x0N0bVz26f-Cz-/exec';
+
+async function syncSheets(){
+  const ind=document.getElementById('sync-indicator');
+  if(ind)ind.style.display='flex';
+  try{
+    const url=SCRIPT_URL+'?action=read&sheet='+(cfg.sheetProducts||'Products');
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),8000);
+    const res=await fetch(url,{signal:controller.signal});
+    clearTimeout(timeout);
+    const json=await res.json();
+    if(json.error||!json.data||json.data.length<2){renderInventory();return;}
+    const parsed=json.data.slice(1).filter(r=>r[0]).map(r=>({
+      sku:String(r[0]||''),name:String(r[1]||''),supplier:String(r[2]||''),category:String(r[3]||''),
+      unit:String(r[4]||'個'),price:parseFloat(r[5])||0,
+      estock:parseFloat(r[6])||0,esafety:parseFloat(r[7])||0,eusage:parseFloat(r[8])||0,elead:parseInt(r[9])||50,
+      wstock:parseFloat(r[10])||0,wsafety:parseFloat(r[11])||0,wusage:parseFloat(r[12])||0,wlead:parseInt(r[13])||40,
+      eusage7:parseFloat(r[14])||0,eusage30:parseFloat(r[15])||0,eusageSeason:parseFloat(r[16])||0,
+      wusage7:parseFloat(r[17])||0,wusage30:parseFloat(r[18])||0,wusageSeason:parseFloat(r[19])||0
+    }));
+    products=parsed;persist();renderInventory();
+  }catch(e){renderInventory();}
+  finally{if(ind)ind.style.display='none';}
+}
+
+async function pushToSheets(){
+  try{
+    const rows=products.map(p=>[p.sku,p.name,p.supplier,p.category,p.unit,p.price,p.estock,p.esafety,p.eusage,p.elead,p.wstock,p.wsafety,p.wusage,p.wlead,p.eusage7||0,p.eusage30||0,p.eusageSeason||0,p.wusage7||0,p.wusage30||0,p.wusageSeason||0]);
+    await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'write',sheet:cfg.sheetProducts||'Products',data:rows})});
+    const oRows=orders.map(o=>[o.poNum,o.warehouse,o.sku,o.name,o.supplier,o.unit,o.qty,o.price,o.date,o.eta,o.status]);
+    await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'write',sheet:cfg.sheetPO||'PurchaseOrders',data:oRows})});
+  }catch(e){console.log('推送失敗',e);}
+}
+
 function closeModal(id){document.getElementById(id).style.display='none';}
 function handleOverlayClick(e,id){if(e.target===e.currentTarget)closeModal(id);}
 
 loadConfig();applyLabelsToDOM();renderInventory();
-if(cfg.scriptUrl){setTimeout(()=>syncSheets(),100);}
+setTimeout(()=>syncSheets(),100);
 </script>
 </body>
 </html>
