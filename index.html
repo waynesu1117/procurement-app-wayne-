@@ -328,7 +328,28 @@
       <div id="lbl-status" style="margin-top:10px;font-size:13px"></div>
     </div>
     <div class="config-panel">
-      <h3><i class="ti ti-brand-google"></i> Google Sheets 串接</h3>
+      <h3><i class="ti ti-shield"></i> 安全庫存緩衝天數</h3>
+      <div class="notice"><i class="ti ti-info-circle"></i><span>安全庫存 = 選定日銷量 × 緩衝天數。切換 7天/30天/季均時會自動重新計算。</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--east-text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🟢 東岸緩衝天數</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="range" id="buffer-east" min="1" max="60" value="15" step="1" style="flex:1" oninput="updateBuffer()"/>
+            <span id="buffer-east-val" style="font-size:18px;font-weight:300;min-width:40px;color:var(--east)">15 天</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--west-text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔵 西岸緩衝天數</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="range" id="buffer-west" min="1" max="60" value="15" step="1" style="flex:1" oninput="updateBuffer()"/>
+            <span id="buffer-west-val" style="font-size:18px;font-weight:300;min-width:40px;color:var(--west)">15 天</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveBuffer()"><i class="ti ti-check"></i> 套用緩衝天數</button>
+      <div id="buffer-status" style="margin-top:10px;font-size:13px"></div>
+    </div>
+    <div class="config-panel">
       <div class="notice"><i class="ti ti-info-circle"></i><span>Spreadsheet ID 在網址列 <code>spreadsheets/d/<b>這一段</b>/edit</code> 取得。</span></div>
       <div style="display:grid;grid-template-columns:180px 1fr;gap:10px;align-items:center;margin-bottom:12px">
         <label style="font-size:13px;color:var(--text2)">Spreadsheet ID</label><input type="text" id="cfg-sheetId"/>
@@ -491,10 +512,10 @@ function fmtFull(d){return d.getFullYear()+'-'+(d.getMonth()+1).toString().padSt
 function daysBetween(a,b){return Math.round((b-a)/(864e5));}
 
 // Per-warehouse calculations
-function wRop(p,w){const u=getUsage(p,w),l=w==='e'?p.elead:p.wlead,s=w==='e'?p.esafety:p.wsafety;return Math.round(u*l+s);}
+function wRop(p,w){const u=getUsage(p,w),l=w==='e'?p.elead:p.wlead,s=getSafety(p,w);return Math.round(u*l+s);}
 function wDaysLeft(p,w){const st=w==='e'?p.estock:p.wstock,u=getUsage(p,w);return u>0?Math.round(st/u):9999;}
 function wExpiry(p,w){return getUsage(p,w)<=0?'—':fmtDate(addDays(TODAY,wDaysLeft(p,w)));}
-function wStatus(p,w){const st=w==='e'?p.estock:p.wstock,s=w==='e'?p.esafety:p.wsafety,r=wRop(p,w);if(st<=s)return'danger';if(st<=r)return'warn';return'ok';}
+function wStatus(p,w){const st=w==='e'?p.estock:p.wstock,s=getSafety(p,w),r=wRop(p,w);if(st<=s)return'danger';if(st<=r)return'warn';return'ok';}
 function wStockPct(p,w){return Math.min(100,Math.round((w==='e'?p.estock:p.wstock)/(wRop(p,w)*2||1)*100));}
 function overallStatus(p){const es=wStatus(p,'e'),ws=wStatus(p,'w');if(es==='danger'||ws==='danger')return'danger';if(es==='warn'||ws==='warn')return'warn';return'ok';}
 
@@ -565,6 +586,38 @@ function getUsage(p, w){
     if(usageMode==='season') return parseFloat(p.wusageSeason)||p.wusage||0;
     return p.wusage||0;
   }
+}
+
+let bufferEast = parseInt(localStorage.getItem('bufferEast'))||15;
+let bufferWest = parseInt(localStorage.getItem('bufferWest'))||15;
+
+function getSafety(p, w){
+  if(usageMode==='manual') return w==='e'?p.esafety:p.wsafety;
+  const u=getUsage(p,w);
+  return Math.round(u * (w==='e'?bufferEast:bufferWest));
+}
+
+function updateBuffer(){
+  const ev=document.getElementById('buffer-east').value;
+  const wv=document.getElementById('buffer-west').value;
+  document.getElementById('buffer-east-val').textContent=ev+' 天';
+  document.getElementById('buffer-west-val').textContent=wv+' 天';
+}
+
+function saveBuffer(){
+  bufferEast=parseInt(document.getElementById('buffer-east').value);
+  bufferWest=parseInt(document.getElementById('buffer-west').value);
+  localStorage.setItem('bufferEast',bufferEast);
+  localStorage.setItem('bufferWest',bufferWest);
+  document.getElementById('buffer-status').innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> 已套用！再訂購點已更新。</span>';
+  renderInventory();
+}
+
+function loadBuffer(){
+  document.getElementById('buffer-east').value=bufferEast;
+  document.getElementById('buffer-west').value=bufferWest;
+  document.getElementById('buffer-east-val').textContent=bufferEast+' 天';
+  document.getElementById('buffer-west-val').textContent=bufferWest+' 天';
 }
 
 function setView(v){
@@ -754,7 +807,7 @@ function switchPage(name){
   if(name==='forecast')renderForecast();
   if(name==='orders')renderOrders();
   if(name==='alerts')renderAlerts();
-  if(name==='config')loadLabelInputs();
+  if(name==='config'){loadLabelInputs();loadBuffer();}
 }
 
 function openAddProduct(){
@@ -902,7 +955,7 @@ async function pushToSheets(){
 function closeModal(id){document.getElementById(id).style.display='none';}
 function handleOverlayClick(e,id){if(e.target===e.currentTarget)closeModal(id);}
 
-loadConfig();applyLabelsToDOM();renderInventory();
+loadConfig();applyLabelsToDOM();loadBuffer();renderInventory();
 setTimeout(()=>syncSheets(),100);
 </script>
 </body>
