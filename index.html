@@ -251,6 +251,49 @@
         <button class="btn" onclick="testConn()"><i class="ti ti-external-link"></i> 開啟試算表</button>
       </div>
       <div id="cfg-status" style="margin-top:10px;font-size:13px"></div>
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+        <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:12px"><i class="ti ti-table" style="font-size:12px;vertical-align:1px;margin-right:4px"></i> Google Sheets 欄位結構說明</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:var(--east-bg);border:1px solid #9FE1CB;border-radius:var(--radius-sm);padding:14px">
+            <div style="font-size:12px;font-weight:500;color:var(--east-text);margin-bottom:8px"><i class="ti ti-table"></i> Products 工作表</div>
+            <table style="width:100%;font-size:11px;border-collapse:collapse">
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">A</td><td style="padding:3px 6px">SKU</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">B</td><td style="padding:3px 6px">品名</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">C</td><td style="padding:3px 6px">工廠（供應商）</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">D</td><td style="padding:3px 6px">類別</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">E</td><td style="padding:3px 6px">單位</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">F</td><td style="padding:3px 6px">單價</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">G</td><td style="padding:3px 6px">🟢 東岸庫存</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">H</td><td style="padding:3px 6px">🟢 東岸安全庫存</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">I</td><td style="padding:3px 6px">🟢 東岸日銷量</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">J</td><td style="padding:3px 6px">🟢 東岸 Lead Time（天）</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">K</td><td style="padding:3px 6px">🔵 西岸庫存</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">L</td><td style="padding:3px 6px">🔵 西岸安全庫存</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">M</td><td style="padding:3px 6px">🔵 西岸日銷量</td></tr>
+              <tr><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">N</td><td style="padding:3px 6px">🔵 西岸 Lead Time（天）</td></tr>
+            </table>
+          </div>
+          <div style="background:var(--west-bg);border:1px solid #B5D4F4;border-radius:var(--radius-sm);padding:14px">
+            <div style="font-size:12px;font-weight:500;color:var(--west-text);margin-bottom:8px"><i class="ti ti-table"></i> PurchaseOrders 工作表</div>
+            <table style="width:100%;font-size:11px;border-collapse:collapse">
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">A</td><td style="padding:3px 6px">採購單號</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">B</td><td style="padding:3px 6px">目的倉庫（east / west）</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">C</td><td style="padding:3px 6px">SKU</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">D</td><td style="padding:3px 6px">品名</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">E</td><td style="padding:3px 6px">工廠</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">F</td><td style="padding:3px 6px">單位</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">G</td><td style="padding:3px 6px">採購量</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">H</td><td style="padding:3px 6px">單價</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">I</td><td style="padding:3px 6px">叫貨日期</td></tr>
+              <tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">J</td><td style="padding:3px 6px">預計到倉日</td></tr>
+              <tr><td style="padding:3px 6px;color:var(--text3);font-family:'IBM Plex Mono',monospace">K</td><td style="padding:3px 6px">狀態（待下單/已下單/已到倉）</td></tr>
+            </table>
+          </div>
+        </div>
+        <div style="margin-top:10px;background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--text2)">
+          <i class="ti ti-bulb" style="color:var(--amber)"></i> 第一列請填欄位標題，從第二列開始填資料。日期格式建議用 <span style="font-family:'IBM Plex Mono',monospace">YYYY-MM-DD</span>。
+        </div>
+      </div>
     </div>
   </div>
 
