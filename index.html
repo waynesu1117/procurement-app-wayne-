@@ -232,6 +232,12 @@
               <button id="view-btn-east" class="view-btn" onclick="setView('east')">🟢 東岸</button>
               <button id="view-btn-west" class="view-btn" onclick="setView('west')">🔵 西岸</button>
             </div>
+            <div class="view-toggle">
+              <button id="usage-btn-manual" class="view-btn active" onclick="setUsageMode('manual')">手動</button>
+              <button id="usage-btn-7" class="view-btn" onclick="setUsageMode('7')">7天均</button>
+              <button id="usage-btn-30" class="view-btn" onclick="setUsageMode('30')">30天均</button>
+              <button id="usage-btn-season" class="view-btn" onclick="setUsageMode('season')">季均</button>
+            </div>
           </div>
         </div>
       </div>
@@ -488,9 +494,9 @@ function fmtFull(d){return d.getFullYear()+'-'+(d.getMonth()+1).toString().padSt
 function daysBetween(a,b){return Math.round((b-a)/(864e5));}
 
 // Per-warehouse calculations
-function wRop(p,w){const u=w==='e'?p.eusage:p.wusage,l=w==='e'?p.elead:p.wlead,s=w==='e'?p.esafety:p.wsafety;return Math.round(u*l+s);}
-function wDaysLeft(p,w){const st=w==='e'?p.estock:p.wstock,u=w==='e'?p.eusage:p.wusage;return u>0?Math.round(st/u):9999;}
-function wExpiry(p,w){return(w==='e'?p.eusage:p.wusage)<=0?'—':fmtDate(addDays(TODAY,wDaysLeft(p,w)));}
+function wRop(p,w){const u=getUsage(p,w),l=w==='e'?p.elead:p.wlead,s=w==='e'?p.esafety:p.wsafety;return Math.round(u*l+s);}
+function wDaysLeft(p,w){const st=w==='e'?p.estock:p.wstock,u=getUsage(p,w);return u>0?Math.round(st/u):9999;}
+function wExpiry(p,w){return getUsage(p,w)<=0?'—':fmtDate(addDays(TODAY,wDaysLeft(p,w)));}
 function wStatus(p,w){const st=w==='e'?p.estock:p.wstock,s=w==='e'?p.esafety:p.wsafety,r=wRop(p,w);if(st<=s)return'danger';if(st<=r)return'warn';return'ok';}
 function wStockPct(p,w){return Math.min(100,Math.round((w==='e'?p.estock:p.wstock)/(wRop(p,w)*2||1)*100));}
 function overallStatus(p){const es=wStatus(p,'e'),ws=wStatus(p,'w');if(es==='danger'||ws==='danger')return'danger';if(es==='warn'||ws==='warn')return'warn';return'ok';}
@@ -540,7 +546,29 @@ function statusBadge(st,short){
 }
 
 let currentView='all';
-function setView(v){
+let usageMode='manual';
+
+function setUsageMode(m){
+  usageMode=m;
+  document.querySelectorAll('[id^="usage-btn-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('usage-btn-'+m).classList.add('active');
+  renderInventory();
+}
+
+// Get effective daily usage for warehouse w based on current usageMode
+function getUsage(p, w){
+  if(w==='e'){
+    if(usageMode==='7') return parseFloat(p.eusage7)||p.eusage||0;
+    if(usageMode==='30') return parseFloat(p.eusage30)||p.eusage||0;
+    if(usageMode==='season') return parseFloat(p.eusageSeason)||p.eusage||0;
+    return p.eusage||0;
+  } else {
+    if(usageMode==='7') return parseFloat(p.wusage7)||p.wusage||0;
+    if(usageMode==='30') return parseFloat(p.wusage30)||p.wusage||0;
+    if(usageMode==='season') return parseFloat(p.wusageSeason)||p.wusage||0;
+    return p.wusage||0;
+  }
+}
   currentView=v;
   document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('view-btn-'+v).classList.add('active');
@@ -853,7 +881,9 @@ async function syncSheets(silent){
       sku:String(r[0]||''),name:String(r[1]||''),supplier:String(r[2]||''),category:String(r[3]||''),
       unit:String(r[4]||'個'),price:parseFloat(r[5])||0,
       estock:parseFloat(r[6])||0,esafety:parseFloat(r[7])||0,eusage:parseFloat(r[8])||0,elead:parseInt(r[9])||50,
-      wstock:parseFloat(r[10])||0,wsafety:parseFloat(r[11])||0,wusage:parseFloat(r[12])||0,wlead:parseInt(r[13])||40
+      wstock:parseFloat(r[10])||0,wsafety:parseFloat(r[11])||0,wusage:parseFloat(r[12])||0,wlead:parseInt(r[13])||40,
+      eusage7:parseFloat(r[14])||0,eusage30:parseFloat(r[15])||0,eusageSeason:parseFloat(r[16])||0,
+      wusage7:parseFloat(r[17])||0,wusage30:parseFloat(r[18])||0,wusageSeason:parseFloat(r[19])||0
     }));
     products=parsed;
     persist();
