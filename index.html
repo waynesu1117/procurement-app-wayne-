@@ -107,6 +107,11 @@
     .label-row input{padding:7px 10px;font-size:13px}
     .section-divider{font-size:11px;font-weight:500;color:var(--text2);margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);grid-column:span 2}
     .warehouse-header{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;margin-bottom:4px}
+    .view-btn{background:none;border:none;border-radius:var(--radius-sm);padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);font-family:inherit;transition:all .15s}
+    .view-btn:hover{background:var(--surface);color:var(--text)}
+    .view-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+    .view-btn.active[onclick="setView('east')"]{color:var(--east-text)}
+    .view-btn.active[onclick="setView('west')"]{color:var(--west-text)}
   </style>
 </head>
 <body>
@@ -133,27 +138,23 @@
     <div class="stats-grid" id="stats-grid"></div>
     <div class="card">
       <div class="card-pad" style="padding-bottom:0">
-        <div class="toolbar"><span class="toolbar-title">商品清單</span>
+        <div class="toolbar">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="toolbar-title">商品清單</span>
+            <div style="display:flex;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;gap:2px">
+              <button id="view-btn-all" class="view-btn active" onclick="setView('all')">All</button>
+              <button id="view-btn-east" class="view-btn" onclick="setView('east')">🟢 東岸</button>
+              <button id="view-btn-west" class="view-btn" onclick="setView('west')">🔵 西岸</button>
+            </div>
+          </div>
           <div class="btn-group">
             <button class="btn btn-sm" onclick="syncSheets()"><i class="ti ti-refresh"></i> 同步 Sheets</button>
             <button class="btn btn-sm btn-primary" onclick="openAddProduct()"><i class="ti ti-plus"></i> 新增品項</button>
           </div>
         </div>
       </div>
-      <div class="tbl-wrap"><table>
-        <thead><tr>
-          <th rowspan="2" style="vertical-align:middle">SKU</th>
-          <th rowspan="2" style="vertical-align:middle">品名</th>
-          <th rowspan="2" style="vertical-align:middle">類別</th>
-          <th rowspan="2" style="vertical-align:middle">工廠</th>
-          <th rowspan="2" style="vertical-align:middle">單位</th>
-          <th colspan="4" class="east" style="text-align:center">🟢 東岸倉</th>
-          <th colspan="4" class="west" style="text-align:center">🔵 西岸倉</th>
-          <th rowspan="2" style="vertical-align:middle">操作</th>
-        </tr><tr>
-          <th class="east">庫存</th><th class="east">日銷量</th><th class="east">再訂購點</th><th class="east">耗盡日</th>
-          <th class="west">庫存</th><th class="west">日銷量</th><th class="west">再訂購點</th><th class="west">耗盡日</th>
-        </tr></thead>
+      <div class="tbl-wrap"><table id="inventory-table">
+        <thead id="inventory-thead"></thead>
         <tbody id="inventory-tbody"></tbody>
       </table></div>
     </div>
@@ -456,34 +457,85 @@ function statusBadge(st,short){
   return`<span class="badge badge-green">${short?'':'正常'}</span>`;
 }
 
+let currentView='all';
+function setView(v){
+  currentView=v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-btn-'+v).classList.add('active');
+  renderInventory();
+}
+
 function renderInventory(){
   renderStats();
+  const thead=document.getElementById('inventory-thead');
   const tb=document.getElementById('inventory-tbody');
+  const w=currentView;
+
+  if(w==='all'){
+    thead.innerHTML=`<tr>
+      <th rowspan="2" style="vertical-align:middle">SKU</th>
+      <th rowspan="2" style="vertical-align:middle">品名</th>
+      <th rowspan="2" style="vertical-align:middle">類別</th>
+      <th rowspan="2" style="vertical-align:middle">工廠</th>
+      <th rowspan="2" style="vertical-align:middle">單位</th>
+      <th colspan="4" class="east" style="text-align:center">🟢 ${labels.east}</th>
+      <th colspan="4" class="west" style="text-align:center">🔵 ${labels.west}</th>
+      <th rowspan="2" style="vertical-align:middle">操作</th>
+    </tr><tr>
+      <th class="east">庫存</th><th class="east">${labels.usage}</th><th class="east">再訂購點</th><th class="east">${labels.expiry}</th>
+      <th class="west">庫存</th><th class="west">${labels.usage}</th><th class="west">再訂購點</th><th class="west">${labels.expiry}</th>
+    </tr>`;
+  } else {
+    const isE=w==='east';
+    const cls=isE?'east':'west';
+    const icon=isE?'🟢':'🔵';
+    const wlbl=isE?labels.east:labels.west;
+    thead.innerHTML=`<tr>
+      <th>SKU</th><th>品名</th><th>類別</th><th>工廠</th><th>單位</th>
+      <th class="${cls}">庫存</th><th class="${cls}">${labels.usage}</th>
+      <th class="${cls}">安全庫存</th><th class="${cls}">再訂購點</th>
+      <th class="${cls}">${labels.lead}</th><th class="${cls}">${labels.expiry}</th>
+      <th>狀態</th><th>操作</th>
+    </tr>`;
+  }
+
   if(!products.length){tb.innerHTML='<tr><td colspan="15"><div class="empty"><i class="ti ti-package-off"></i><p>尚無品項</p></div></td></tr>';return;}
+
   tb.innerHTML=products.map((p,i)=>{
-    const es=wStatus(p,'e'),ws=wStatus(p,'w');
+    const es=wStatus(p,'e'),ws_=wStatus(p,'w');
     const epct=wStockPct(p,'e'),wpct=wStockPct(p,'w');
     const ebc=es==='danger'?'#E24B4A':es==='warn'?'#EF9F27':'#1D9E75';
-    const wbc=ws==='danger'?'#E24B4A':ws==='warn'?'#EF9F27':'#185FA5';
-    return`<tr>
-      <td class="mono">${p.sku}</td>
-      <td style="font-weight:500">${p.name}</td>
-      <td><span class="badge badge-gray">${p.category||'—'}</span></td>
-      <td style="color:var(--text2);font-size:11px">${p.supplier||'—'}</td>
-      <td style="color:var(--text3);font-size:11px">${p.unit}</td>
-      <td class="east"><div style="display:flex;align-items:center;gap:6px"><span style="font-weight:500">${p.estock.toLocaleString()}</span><div class="stock-bar"><div class="stock-bar-fill" style="width:${epct}%;background:${ebc}"></div></div></div></td>
-      <td class="east">${p.eusage}/天</td>
-      <td class="east" style="color:${es!=='ok'?'var(--amber)':'inherit'};font-weight:500">${wRop(p,'e').toLocaleString()}</td>
-      <td class="east">${statusBadge(es,true)} ${wExpiry(p,'e')}</td>
-      <td class="west"><div style="display:flex;align-items:center;gap:6px"><span style="font-weight:500">${p.wstock.toLocaleString()}</span><div class="stock-bar"><div class="stock-bar-fill" style="width:${wpct}%;background:${wbc}"></div></div></div></td>
-      <td class="west">${p.wusage}/天</td>
-      <td class="west" style="color:${ws!=='ok'?'var(--amber)':'inherit'};font-weight:500">${wRop(p,'w').toLocaleString()}</td>
-      <td class="west">${statusBadge(ws,true)} ${wExpiry(p,'w')}</td>
-      <td><div class="btn-group">
-        <button class="btn btn-sm" onclick="openEditProduct(${i})"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${i})"><i class="ti ti-trash"></i></button>
-      </div></td>
-    </tr>`;
+    const wbc=ws_==='danger'?'#E24B4A':ws_==='warn'?'#EF9F27':'#185FA5';
+    const ops=`<div class="btn-group"><button class="btn btn-sm" onclick="openEditProduct(${i})"><i class="ti ti-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deleteProduct(${i})"><i class="ti ti-trash"></i></button></div>`;
+    const base=`<td class="mono">${p.sku}</td><td style="font-weight:500">${p.name}</td><td><span class="badge badge-gray">${p.category||'—'}</span></td><td style="color:var(--text2);font-size:11px">${p.supplier||'—'}</td><td style="color:var(--text3);font-size:11px">${p.unit}</td>`;
+
+    if(w==='all'){
+      const eRow=`<td class="east"><div style="display:flex;align-items:center;gap:6px"><span style="font-weight:500">${p.estock.toLocaleString()}</span><div class="stock-bar"><div class="stock-bar-fill" style="width:${epct}%;background:${ebc}"></div></div></div></td><td class="east">${p.eusage}/天</td><td class="east" style="color:${es!=='ok'?'var(--amber)':'inherit'};font-weight:500">${wRop(p,'e').toLocaleString()}</td><td class="east">${statusBadge(es,true)} ${wExpiry(p,'e')}</td>`;
+      const wRow=`<td class="west"><div style="display:flex;align-items:center;gap:6px"><span style="font-weight:500">${p.wstock.toLocaleString()}</span><div class="stock-bar"><div class="stock-bar-fill" style="width:${wpct}%;background:${wbc}"></div></div></div></td><td class="west">${p.wusage}/天</td><td class="west" style="color:${ws_!=='ok'?'var(--amber)':'inherit'};font-weight:500">${wRop(p,'w').toLocaleString()}</td><td class="west">${statusBadge(ws_,true)} ${wExpiry(p,'w')}</td>`;
+      const rowCls=es==='danger'||ws_==='danger'?'row-danger':es==='warn'||ws_==='warn'?'row-warn':'';
+      return`<tr class="${rowCls}">${base}${eRow}${wRow}<td>${ops}</td></tr>`;
+    } else {
+      const isE=w==='east';
+      const st=isE?es:ws_;
+      const stock=isE?p.estock:p.wstock;
+      const safety=isE?p.esafety:p.wsafety;
+      const usage=isE?p.eusage:p.wusage;
+      const lead=isE?p.elead:p.wlead;
+      const pct=isE?epct:wpct;
+      const bc=isE?ebc:wbc;
+      const cls=isE?'east':'west';
+      return`<tr class="${st==='danger'?'row-danger':st==='warn'?'row-warn':''}">
+        ${base}
+        <td class="${cls}"><div style="display:flex;align-items:center;gap:6px"><span style="font-weight:500">${stock.toLocaleString()}</span><div class="stock-bar"><div class="stock-bar-fill" style="width:${pct}%;background:${bc}"></div></div></div></td>
+        <td class="${cls}">${usage}/天</td>
+        <td class="${cls}">${safety.toLocaleString()}</td>
+        <td class="${cls}" style="font-weight:500;color:${st!=='ok'?'var(--amber)':'inherit'}">${wRop(p,isE?'e':'w').toLocaleString()}</td>
+        <td class="${cls}">${lead} 天</td>
+        <td class="${cls}">${wExpiry(p,isE?'e':'w')}</td>
+        <td>${statusBadge(st,false)}</td>
+        <td>${ops}</td>
+      </tr>`;
+    }
   }).join('');
 }
 
